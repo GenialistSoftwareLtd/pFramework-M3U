@@ -17,10 +17,16 @@ import tv.genialist.fwrk.document.file.pM3UFileDocumentType;
 import tv.genialist.fwrk.document.file.pPlaylistFileDocumentType;
 import tv.genialist.fwrk.media.library.pMediaLibraryConstants;
 import tv.genialist.fwrk.swing.util.service.pFileToPlaylist;
+import tv.genialist.fwrk.swing.util.service.pPlaylistToText;
+import tv.genialist.fwrk.swing.util.service.pFileToPlaylist.pFileToPlaylist_Request;
+import tv.genialist.fwrk.swing.util.service.pPlaylistToText.pPlaylistToText_Request;
+import tv.genialist.ptools.lang.pBaseStringBuilder;
 import tv.genialist.ptools.lang.util.pBooleanUtil;
+import tv.genialist.ptools.string.pString;
 import tv.genialist.ptools.string.pStringProviders;
 import tv.genialist.ptools.string.pStringProviders.pMainStringProvider;
 import tv.genialist.ptools.trace.pTraceImpl;
+import tv.genialist.ptools.util.pListUtil.pReadOnlyList;
 
 /**
  * <p>
@@ -43,6 +49,8 @@ public class pM3UPlugin extends pBasePlugin {
 	/** The default instance of this object (initialised by the method {@link #getDefaultInstance()}). */
 	private static pM3UPlugin DEFAULT; 
 	
+	public static final String FORMAT = "M3U (MP3 URL)";
+	
 	/**************************************************************************/
 	/***  CONSTRUCTORS  *******************************************************/
 	/**************************************************************************/
@@ -53,10 +61,13 @@ public class pM3UPlugin extends pBasePlugin {
 	private pM3UPlugin() {
 		super();
 		
-		addResource(new pFileToPlaylist.pServiceProvider() {
-
+		addResource(new pFileToPlaylist.pAbstractChangeFileMetadata_ServiceProvider(this.getConfigHandler(), "m3u.sp.file.to.playlist", true) {
+			
 			@Override
-			public boolean provide(final File p_file, final List<pMediaDocument> p_result, final String p_default_title, final long p_default_duration) {
+			public boolean invoke(final pFileToPlaylist_Request p_request) {
+				
+				final File p_file = p_request.getSourceFile();
+				final List<pMediaDocument> p_result = p_request.getResult();
 				
 				if (!pM3UFileDocumentType.getDefaultInstance().accept(p_file))
 					return false;
@@ -66,7 +77,7 @@ public class pM3UPlugin extends pBasePlugin {
 						if (i_doc instanceof pFileDocument)
 							p_result.add(new pMediaFileDocument(((pFileDocument)i_doc).getFile()));
 					
-					return p_result.size()>0;
+					return p_result.size() > 0;
 				}
 				catch (final Exception ex) {
 					if (TRACE.isErrorEnabled())
@@ -75,6 +86,30 @@ public class pM3UPlugin extends pBasePlugin {
 				return false;
 			}
 		});
+		
+		addResource(new pPlaylistToText.pAbstractChangeFileMetadata_ServiceProvider(this.getConfigHandler(), "m3u.sp.playlist.to.text", true) {
+			
+			@Override
+			public boolean invoke(final pPlaylistToText_Request p_request) {
+				
+				if (!p_request.getFormat().equals(FORMAT) && !p_request.getFormat().equals("M3U"))
+					return false;
+
+				final pReadOnlyList<String> i_medias = p_request.getMediaURLs();
+				final pBaseStringBuilder i_result = new pBaseStringBuilder(1024);
+				
+				for(int i=0 ; i < i_medias.size() ; i++) {
+					i_result.append(i_medias.get(i));
+					i_result.append("\r\n");
+				}
+				
+				p_request.setResult(i_result.toString());
+				p_request.setFileExtension((pString.hasNonASCIIChars(i_result))? ".m3u8" : pM3UFileDocumentType.getDefaultInstance().getFirstFileExtension().getExtension());
+				
+				return true;
+			}
+		});
+		
 		addResource(new pFileDocumentTypeImpl.pFileDocumentTypeInclusion(
 			pM3UFileDocumentType.getDefaultInstance(), 
 			pPlaylistFileDocumentType.getDefaultInstance())
@@ -86,6 +121,15 @@ public class pM3UPlugin extends pBasePlugin {
 			@Override
 			public String toString(final pMainStringProvider<Object> p_parent, final File p_file) {
 				return (pM3UFileDocumentType.getDefaultInstance().accept(p_file))? pBooleanUtil.STRING_TRUE : null;
+			}
+		});
+		
+		//*** ADD PLAYLIST FORMAT
+		addResource(new pStringProviders.pDefaultStringProvider<Object>(pPlaylistFileDocumentType.STR_PROVIDER_PLAYLIST_FORMAT, Object.class) {
+
+			@Override
+			public String toString(final pMainStringProvider<Object> p_parent, final Object p_object) {
+				return FORMAT;
 			}
 		});
 	}
