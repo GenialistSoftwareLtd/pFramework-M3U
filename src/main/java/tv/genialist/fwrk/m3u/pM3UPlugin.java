@@ -3,7 +3,7 @@
  * All rights reserved.
  ******************************************************************************/
 
-package tv.genialist.fwrk.plugin;
+package tv.genialist.fwrk.m3u;
 
 import java.io.File;
 import java.util.List;
@@ -16,6 +16,7 @@ import tv.genialist.fwrk.document.file.pMediaFileDocument;
 import tv.genialist.fwrk.document.file.pM3UFileDocumentType;
 import tv.genialist.fwrk.document.file.pPlaylistFileDocumentType;
 import tv.genialist.fwrk.media.library.pMediaLibraryConstants;
+import tv.genialist.fwrk.plugin.pBasePlugin;
 import tv.genialist.fwrk.swing.util.service.pFileToPlaylist;
 import tv.genialist.fwrk.swing.util.service.pPlaylistToText;
 import tv.genialist.fwrk.swing.util.service.pFileToPlaylist.pFileToPlaylist_Request;

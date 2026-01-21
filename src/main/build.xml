@@ -36,7 +36,7 @@
 				excludes="**/package.html,**/package-info.class,**/pVersionAntTask.class"/>
 
 			<manifest>
-				<attribute name="Specification-Title" value="tv.genialist.fwrk.plugin.pM3UPlugin"/>
+				<attribute name="Specification-Title" value="tv.genialist.fwrk.m3u.pM3UPlugin"/>
 				<attribute name="Specification-Version" value="${package.version}"/>
 				<attribute name="Specification-Vendor" value="Genialist Software Ltd"/>
 				<attribute name="Implementation-Title" value="pFramework M3U"/>
