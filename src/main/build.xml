@@ -44,7 +44,7 @@
 				<attribute name="Implementation-Vendor" value="Genialist Software Ltd"/>
 				
 				<section name="pFramework">
-					<attribute name="plugins" value="tv.genialist.fwrk.plugin.pM3UPlugin"/>
+					<attribute name="plugins" value="tv.genialist.fwrk.m3u.pM3UPlugin"/>
 				</section>
 			</manifest>
 		</jar>
