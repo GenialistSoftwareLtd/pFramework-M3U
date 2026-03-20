@@ -20,7 +20,10 @@ import tv.genialist.fwrk.plugin.pBasePlugin;
 import tv.genialist.fwrk.swing.util.service.pFileToPlaylist;
 import tv.genialist.fwrk.swing.util.service.pPlaylistToText;
 import tv.genialist.fwrk.swing.util.service.pFileToPlaylist.pFileToPlaylist_Request;
+import tv.genialist.fwrk.swing.util.service.pFileToPlaylist.pFileToPlaylist_Response;
 import tv.genialist.fwrk.swing.util.service.pPlaylistToText.pPlaylistToText_Request;
+import tv.genialist.fwrk.swing.util.service.pPlaylistToText.pPlaylistToText_Response;
+import tv.genialist.ptools.config.pConfigHandler;
 import tv.genialist.ptools.lang.pBaseStringBuilder;
 import tv.genialist.ptools.lang.util.pBooleanUtil;
 import tv.genialist.ptools.string.pString;
@@ -37,8 +40,73 @@ import tv.genialist.ptools.util.pListUtil.pReadOnlyList;
  */
 public class pM3UPlugin extends pBasePlugin {
 
+	/**************************************************************************/
+	/***  DEFINITIONS  ********************************************************/
+	/**************************************************************************/
+	
 	/** The prefix used in trace and log messages. */
 	public static final String TRACE_PREFIX = "M3UPlugin";
+	
+	/**************************************************************************/
+	/***  SUB-CLASSES  ********************************************************/
+	/**************************************************************************/
+	
+	private static class pServiceProvider_FileToPlaylist extends pFileToPlaylist.pAbstractFileToPlaylist_ServiceProvider {
+		
+		public pServiceProvider_FileToPlaylist(final pConfigHandler p_config) {
+			super(p_config, "m3u.sp.file.to.playlist", true);
+		}
+		
+		@Override
+		public boolean invoke(final pFileToPlaylist_Request p_request, final pFileToPlaylist_Response p_response) {
+			
+			final File p_file = p_request.getSourceFile();
+			final List<pMediaDocument> p_result = p_response.getResult();
+			
+			if (!pM3UFileDocumentType.getDefaultInstance().accept(p_file))
+				return false;
+			
+			try {
+				for(pDocument i_doc : pM3UFileDocumentType.parse(p_file))
+					if (i_doc instanceof pFileDocument)
+						p_result.add(new pMediaFileDocument(((pFileDocument)i_doc).getFile()));
+				
+				return p_result.size() > 0;
+			}
+			catch (final Exception ex) {
+				if (TRACE.isErrorEnabled())
+					TRACE.error("Failed to parse M3U file: ", p_file.getAbsolutePath(), ex);
+			}
+			return false;
+		}
+	}
+	
+	private static class pServiceProvider_PlaylistToText extends pPlaylistToText.pAbstractPlaylistToText_ServiceProvider {
+		
+		public pServiceProvider_PlaylistToText(final pConfigHandler p_config) {
+			super(p_config, "m3u.sp.playlist.to.text", true);
+		}
+		
+		@Override
+		public boolean invoke(final pPlaylistToText_Request p_request, final pPlaylistToText_Response p_response) {
+			
+			if (!p_request.getFormat().equals(FORMAT) && !p_request.getFormat().equals("M3U"))
+				return false;
+
+			final pReadOnlyList<String> i_medias = p_request.getMediaURLs();
+			final pBaseStringBuilder i_result = new pBaseStringBuilder(1024);
+			
+			for(int i=0 ; i < i_medias.size() ; i++) {
+				i_result.append(i_medias.get(i));
+				i_result.append("\r\n");
+			}
+			
+			p_response.setResult(i_result.toString());
+			p_response.setFileExtension((pString.hasNonASCIIChars(i_result))? ".m3u8" : pM3UFileDocumentType.getDefaultInstance().getFirstFileExtension().getExtension());
+			
+			return true;
+		}
+	}
 	
 	/**************************************************************************/
 	/***  RUNTIME DATA  *******************************************************/
@@ -62,54 +130,9 @@ public class pM3UPlugin extends pBasePlugin {
 	private pM3UPlugin() {
 		super();
 		
-		addResource(new pFileToPlaylist.pAbstractChangeFileMetadata_ServiceProvider(this.getConfigHandler(), "m3u.sp.file.to.playlist", true) {
-			
-			@Override
-			public boolean invoke(final pFileToPlaylist_Request p_request) {
-				
-				final File p_file = p_request.getSourceFile();
-				final List<pMediaDocument> p_result = p_request.getResult();
-				
-				if (!pM3UFileDocumentType.getDefaultInstance().accept(p_file))
-					return false;
-				
-				try {
-					for(pDocument i_doc : pM3UFileDocumentType.parse(p_file))
-						if (i_doc instanceof pFileDocument)
-							p_result.add(new pMediaFileDocument(((pFileDocument)i_doc).getFile()));
-					
-					return p_result.size() > 0;
-				}
-				catch (final Exception ex) {
-					if (TRACE.isErrorEnabled())
-						TRACE.error("Failed to parse M3U file: ", p_file.getAbsolutePath(), ex);
-				}
-				return false;
-			}
-		});
+		addResource(new pServiceProvider_FileToPlaylist(this.getConfigHandler()), true);
 		
-		addResource(new pPlaylistToText.pAbstractChangeFileMetadata_ServiceProvider(this.getConfigHandler(), "m3u.sp.playlist.to.text", true) {
-			
-			@Override
-			public boolean invoke(final pPlaylistToText_Request p_request) {
-				
-				if (!p_request.getFormat().equals(FORMAT) && !p_request.getFormat().equals("M3U"))
-					return false;
-
-				final pReadOnlyList<String> i_medias = p_request.getMediaURLs();
-				final pBaseStringBuilder i_result = new pBaseStringBuilder(1024);
-				
-				for(int i=0 ; i < i_medias.size() ; i++) {
-					i_result.append(i_medias.get(i));
-					i_result.append("\r\n");
-				}
-				
-				p_request.setResult(i_result.toString());
-				p_request.setFileExtension((pString.hasNonASCIIChars(i_result))? ".m3u8" : pM3UFileDocumentType.getDefaultInstance().getFirstFileExtension().getExtension());
-				
-				return true;
-			}
-		});
+		addResource(new pServiceProvider_PlaylistToText(this.getConfigHandler()), true);
 		
 		addResource(new pFileDocumentTypeImpl.pFileDocumentTypeInclusion(
 			pM3UFileDocumentType.getDefaultInstance(), 

@@ -77,15 +77,8 @@ public class pM3UFileDocumentType extends pFileDocumentTypeImpl {
 					if (!i_file.isAbsolute())
 						i_file = new File(p_file.getParent(), i_line);
 					
-					if (i_file.exists() && i_file.isDirectory()) {
-						final File[] i_children = i_file.listFiles((FileFilter)pMediaFileDocumentType.getDefaultInstance());
-						if (null!=i_children)
-							for(File i_cfiles : i_children)
-								if (!DEFAULT.accept(i_cfiles)) {
-									i_lines.add(new pFileDocument(pString.toString(i_index), i_cfiles, null));
-									i_index++;
-								}
-					}
+					if (i_file.exists() && i_file.isDirectory())
+						addFolderEntry(i_file);
 					else {
 						final pFileDocument i_doc = new pFileDocument(pString.toString(i_index), i_file, null);
 						
@@ -97,6 +90,16 @@ public class pM3UFileDocumentType extends pFileDocumentTypeImpl {
 					}
 				}
 			}			
+		}
+		
+		private void addFolderEntry(final File i_file) {
+			final File[] i_children = i_file.listFiles((FileFilter)pMediaFileDocumentType.getDefaultInstance());
+			if (null!=i_children)
+				for(File i_cfiles : i_children)
+					if (!DEFAULT.accept(i_cfiles)) {
+						i_lines.add(new pFileDocument(pString.toString(i_index), i_cfiles, null));
+						i_index++;
+					}
 		}
 		
 		protected pDocument[] getEntries() {
@@ -117,7 +120,7 @@ public class pM3UFileDocumentType extends pFileDocumentTypeImpl {
 		/***  DEFINITIONS  ********************************************************/
 		/**************************************************************************/
 
-		public pParser_M3U(File p_file) {
+		public pParser_M3U(final File p_file) {
 			super(p_file);
 		}
 
@@ -129,7 +132,7 @@ public class pM3UFileDocumentType extends pFileDocumentTypeImpl {
 			if (pFilenameUtil.extensionMatches(getFile(), ".m3u8"))
 				i_encoding = pUseEncoding.CHARSET_UTF_8;
 			
-			try (FileInputStream i_is = new FileInputStream(getFile()); BufferedReader i_reader = new BufferedReader(new InputStreamReader(i_is, i_encoding))) {
+			try (final FileInputStream i_is = new FileInputStream(getFile()); final BufferedReader i_reader = new BufferedReader(new InputStreamReader(i_is, i_encoding))) {
 			
 				String i_line;
 				for(int i=0 ; (i_line = i_reader.readLine())!=null ; i++) {
